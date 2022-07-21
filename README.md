@@ -1,4 +1,4 @@
-# SweetAnarchy.net Item-frame Dupe Meteor Addon
+# SweetAnarchy.net Item-frame Dupe Meteor Addon 
 
 Item-frame dupe with the shit Meteor Addon API.
 
