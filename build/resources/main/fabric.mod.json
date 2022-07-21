@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "addon-template",
-  "version": "${version}",
+  "version": "0.1",
   "name": "Addon Template",
   "description": "An addon template for the Meteor addons.",
   "authors": [
@@ -25,7 +25,7 @@
   },
   "depends": {
     "java": ">=17",
-    "minecraft": ">=${mc_version}",
+    "minecraft": ">=1.19",
     "meteor-client": "*"
   }
 }
