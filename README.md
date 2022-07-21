@@ -1,8 +1,8 @@
-# Meteor Addon Template
+# SweetAnarchy.net Item-frame Dupe Meteor Addon
 
-A template to allow easy usage of the Meteor Addon API.
+Item-frame dupe with the shit Meteor Addon API.
 
 ### How to use:  
 - Clone this project
-- Use this template to create new modules/commands
-- Run the mod with Meteor.
+- Build with gradle
+- Run the mod with Meteor
