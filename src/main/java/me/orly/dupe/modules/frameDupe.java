@@ -13,92 +13,97 @@ import net.minecraft.item.Item;
 import net.minecraft.item.Items;
 
 public class frameDupe extends Module {
-    private final SettingGroup sgGeneral = settings.getDefaultGroup();
-    private final SettingGroup sgFilters = settings.createGroup("Filters");
 
-    private final Setting<Integer> range = sgGeneral.add(new IntSetting.Builder()
-        .name("Range")
-        .description("range")
-        .min(0)
-        .sliderMin(0)
-        .defaultValue(5)
-        .sliderMax(6)
-        .max(6)
+        public boolean isDuping = false;
+
+    private final Setting<Double> destroyTime = settings.getDefaultGroup().add(new DoubleSetting.Builder()
+        .name("destroy-time")
+        .description("Delay between placing and removing the item")
+        .defaultValue(50)
+        .min(1)
+        .max(1000)
+        .sliderMin(50)
+        .sliderMax(200)
         .build()
     );
 
-    private final Setting<Integer> shulkersonly = sgGeneral.add(new IntSetting.Builder()
-        .name("Shulkers")
-        .description("Only uses shulks ")
-        .defaultValue(1)
-        .sliderMax(10)
+    private final Setting<Boolean> alwaysActive = settings.getDefaultGroup().add(new BoolSetting.Builder()
+        .name("always-active")
+        .description("Try to dupe when right-click is not held.")
+        .defaultValue(false)
         .build()
     );
 
-    private final Setting<Integer> turns = sgGeneral.add(new IntSetting.Builder()
-        .name("Turns")
-        .description("Turns ")
-        .min(0)
-        .sliderMin(0)
-        .defaultValue(1)
-        .sliderMax(3)
-        .max(3)
-        .build()
-    );
-
-    private final Setting<Integer> ticks = sgGeneral.add(new IntSetting.Builder()
-        .name("Ticks")
-        .description("ticks")
-        .min(0)
-        .sliderMin(0)
-        .defaultValue(10)
-        .sliderMax(20)
-        .max(20)
-        .build()
-    );
-
-    public frameDupe() {
-        super(FrameDupe.CATEGORY, "Frame-Dupe", "A dupe exploit on the anarchy server sweetanarchy.net");
+    public ItemFrameDupe() {
+        super(DupeAddon.CATEGORY, "ItemFrameDupe", "SweetAnarchy Item-frame Dupe.");
     }
 
-    private int timeout_ticks = 0;
+    @Override
+    public void onActivate() {
+        super.onActivate();
+        doItemFrameDupe();
+    }
+
+    public boolean getShouldDupe()
+    {
+        if (!isActive())
+            return false;
+        if (alwaysActive.get())
+            return true;
+        return MinecraftClient.getInstance().mouse.wasRightButtonClicked();
+    }
 
     @EventHandler
-    public void onTick(TickEvent.Post tickEvent) {
-        if (mc.player != null && mc.world != null) {
-
-            int shulker_slot = getShulkerSlot();
-
-            if (shulker_slot != -1) {
-                mc.player.getInventory().selectedSlot = shulker_slot;
-            }
-
-            for (Entity frame : mc.world.getEntities()) {
-                if (frame instanceof ItemFrameEntity) {
-                    if (mc.player.distanceTo(frame) <= range.getDefaultValue()) {
-                        if (timeout_ticks >= ticks.getDefaultValue()) {
-                            if (((ItemFrameEntity) frame).getHeldItemStack().getItem() == Items.AIR && !mc.player.getMainHandStack().isEmpty()) {
-                                mc.player.interact(frame, mc.player.preferredHand);
-                            }
-                            if (((ItemFrameEntity) frame).getHeldItemStack().getItem() != Items.AIR) {
-                                for (int i = 0; i < turns.getDefaultValue(); i++) {
-                                    mc.player.interact(frame, mc.player.preferredHand);
-                                }
-                                mc.player.attack(frame);
-                                timeout_ticks = 0;
-                            }
-                        }
-                        ++timeout_ticks;
-                    }
-                }
-            }
+    public void onInteractItemFrame(InteractEntityEvent interactEntityEvent)
+    {
+        if (!getShouldDupe())
+            return;
+        if (isDuping) {
+            return;
+        }
+        if (interactEntityEvent.entity instanceof ItemFrameEntity) {
+            Thread t = new Thread(this::doItemFrameDupe);
+            t.start();
         }
     }
-    private int getShulkerSlot() {
-        int shulker_slot = -1;
-        for (int i = 0; i < 9; i++) {
-            Item item = mc.player.getInventory().getStack(i).getItem();
+
+    public void doItemFrameDupe() {
+        isDuping = true;
+        ClientPlayerInteractionManager c = MinecraftClient.getInstance().interactionManager;
+        PlayerEntity p = MinecraftClient.getInstance().player;
+        ClientWorld w = MinecraftClient.getInstance().world;
+        assert c != null;
+        assert p != null;
+        assert w != null;
+
+        List<ItemFrameEntity> itemFrames;
+        ItemFrameEntity itemFrame;
+        Box box;
+
+        while (getShouldDupe()) {
+            try {
+                Thread.sleep((long) (destroyTime.get() * 0.5));
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            box = new Box(p.getEyePos().add(-3, -3, -3), p.getEyePos().add(3, 3, 3));
+            itemFrames = w.getEntitiesByClass(ItemFrameEntity.class, box, itemFrameEntity -> true);
+            if (itemFrames.isEmpty())
+                continue;
+            itemFrame = itemFrames.get(0);
+            c.interactEntity(p, itemFrame, Hand.MAIN_HAND);
+            try {
+                Thread.sleep((long) (destroyTime.get() * 0.5));
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            if (itemFrame.getHeldItemStack().getCount() > 0) {
+                c.attackEntity(p, itemFrame);
+                System.out.println(itemFrame.getHeldItemStack().getCount());
+                System.out.println(System.currentTimeMillis());
+            }
         }
-        return shulker_slot;
+        isDuping = false;
     }
+
 }
